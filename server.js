@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
@@ -15,34 +16,31 @@ app.use(passport.initialize());
 app.use(passport.session()); 
 
 var db;
-MongoClient.connect('mongodb+srv://admin:aYLjvr74yzBVTbyl@cluster0.xli1los.mongodb.net/?retryWrites=true&w=majority', function(err, client){
+MongoClient.connect(process.env.DB_URL, function(err, client){
     if (err) return console.log(err);
     
     db = client.db('PETapp');
-    // var 저장할데이터 = { ID : 'test', PW : 'test' };
-    // db.collection('login').insertOne(저장할데이터, function(err, res) {
-    //     console.log('저장완료');
-    // });
     
-    app.listen(8080, function() {
+    app.listen(process.env.PORT, function() {
         console.log('listening on 8080');
     });
+    
 });
 
-
-/**  */
-app.get('/api/login', function(req, res) {
-    res.json([{ ID : 'test', PW : 'test' }]);
-});
-
+/** 로그인 요청을 위한 POST 요청.
+ *  로그인 시 전송할 json data 형식
+ *  { "ID": "test", "PW": "test" }
+  */
 app.post('/api/login', passport.authenticate('local', {failureRedirect : '/api/fail'}), function(req, res){
     res.json([{ result : 'success'}]);
 });
 
+/** 로그인 실패했을 시 반환할 메시지 */
 app.all('/api/fail', function(req, res) {
     res.status(401).json({ message: '로그인 실패' });
 });
 
+/** 로그인 검증을 위한 passport.js 라이브러리 설정 */
 passport.use(new LocalStrategy({
     usernameField: 'ID',
     passwordField: 'PW',
@@ -51,7 +49,6 @@ passport.use(new LocalStrategy({
 }, function (getID, getPW, done) {
     db.collection('login').findOne({ ID: getID }, function (err, res) {
         if (err) return done(err);
-        console.log(res);
 
         if (!res) return done(null, false, { message: 'Wrong ID' });
 
@@ -63,10 +60,25 @@ passport.use(new LocalStrategy({
     });
 }));
 
+/** 로그인 성공 시 세션 저장 */
 passport.serializeUser(function (user, done) {
     done(null, user.ID);
 });
 
-passport.deserializeUser(function (아이디, done) {
-    done(null, {});
+/** 세션에 저장한 아이디를 통해서 사용자 정보 객체를 불러옴 */
+passport.deserializeUser(function (getID, done) {
+    db.collection('login').findOne({ ID : getID }, function(err, res) {
+        done(null, res);
+    });
 });
+
+// 사용자 정보에 접근하는 예제 페이지 (인증이 필요한 페이지)
+app.get('/dashboard', checkUser, (req, res) => {
+    res.status(200).json({ user: req.user.ID });
+});
+
+/** 로그인 상태를 확인하기 위한 함수. */
+function checkUser(req, res, next) { 
+    if (req.user) next();
+    else res.status(401).json({ message: '로그인 정보 없음.' });
+}
