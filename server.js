@@ -27,17 +27,42 @@ MongoClient.connect(process.env.DB_URL, function(err, client){
     
 });
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /** 로그인 요청을 위한 POST 요청.
  *  로그인 시 전송할 json data 형식
  *  { "ID": "test", "PW": "test" }
   */
-app.post('/api/login', passport.authenticate('local', {failureRedirect : '/api/fail'}), function(req, res){
-    res.json([{ result : 'success'}]);
+app.post('/api/user/login', passport.authenticate('local', {failureRedirect : '/api/user/fail'}), function(req, res){
+    res.json({ result : 'success'});
 });
 
 /** 로그인 실패했을 시 반환할 메시지 */
-app.all('/api/fail', function(req, res) {
-    res.status(401).json({ message: '로그인 실패' });
+app.all('/api/user/fail', function(req, res) {
+    res.status(401).json({ message: 'Login Fail' });
+});
+
+/** 회원가입 요청을 위한 POST 요청
+ *  { "ID": "test2", "PW": "test2" }
+ */
+app.post('/api/user/signup', function(req, res1) {
+    db.collection('login').findOne({ ID : req.body.ID }, function(err, res) {
+        if(!(res)) {
+            db.collection('login').insertOne( { ID : req.body.ID, PW : req.body.PW }, function(err, res) {
+                res1.status(200).send({ message : 'Sign Up Success!' });
+            });
+        } else {
+            res1.status(400).send({ message : 'Duplicated ID'});
+        }
+    });
+});
+
+/** 비밀번호 변경을 위한 PUT 요청 */
+app.put('/api/user/pwchange', function(req, res1) {
+    db.collection('login').updateOne({ ID : req.body.ID }, { $set : { PW : req.body.PW } }, function(err, res) {
+        if(err) res1.status(400).send({ message : 'Password change failed' });
+        res1.status(200).send({ message : 'Password change Success!' });
+    });
 });
 
 /** 로그인 검증을 위한 passport.js 라이브러리 설정 */
@@ -80,5 +105,59 @@ app.get('/dashboard', checkUser, (req, res) => {
 /** 로그인 상태를 확인하기 위한 함수. */
 function checkUser(req, res, next) { 
     if (req.user) next();
-    else res.status(401).json({ message: '로그인 정보 없음.' });
+    else res.status(401).json({ message: 'No login information.' });
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** 게시물 작성을 위한 POST 요청
+ *  { "title": "title1", "content": "content1" }
+ *  저장방식 { _id : 게시물번호, writer : user._id, title : title, content : content, date : YYYYMMDD HH:MM:SS:MM }
+ */
+app.post('/api/board/post', checkUser, function(req, res1) {
+    db.collection('counter').findOne({name : 'board_count'}, function(err, res) {
+        var cnt = res.count;
+        var dateString = WhatTimeNow();
+
+        if(req.user) var data = { _id : cnt, writer : req.user._id, title : req.body.title, content : req.body.content, date : dateString };
+        else res1.status(400).json({ result : "Login first" });
+
+        db.collection('board').insertOne(data, function() {
+            db.collection('counter').updateOne({name : 'board_count'}, { $inc : {count : 1}}, function(err, res) {
+                res1.status(200).json({ result : "Post Success!" });
+            });
+
+        });
+    });
+});
+
+
+
+/** 현재 시간 구하기 위한 함수. */
+function WhatTimeNow() { 
+    var date = new Date();
+    var year = date.getFullYear();
+    var month = date.getMonth() + 1;
+    var dateNum = date.getDate();
+    var hour = date.getHours();
+    var min = date.getMinutes();
+    var sec = date.getSeconds();
+    var milsec = date.getMilliseconds();
+
+    var dateString = year;
+    if(month < 10) dateString += "0";
+    dateString += String(month);
+    if(dateNum < 10) dateString += "0";
+    dateString += String(dateNum) + " ";
+    if(hour < 10) dateString += "0";
+    dateString += String(hour) + ":";
+    if(min < 10) dateString += "0";
+    dateString += String(min) + ":";
+    if(sec < 10) dateString += "0";
+    dateString += String(sec) + ":";
+    if(milsec < 10) dateString += "00";
+    else if(milsec < 100) dateString += "0";
+    dateString += String(milsec);
+
+    return dateString;
 }
