@@ -97,11 +97,6 @@ passport.deserializeUser(function (getID, done) {
     });
 });
 
-// 사용자 정보에 접근하는 예제 페이지 (인증이 필요한 페이지)
-app.get('/dashboard', checkUser, (req, res) => {
-    res.status(200).json({ user: req.user.ID });
-});
-
 /** 로그인 상태를 확인하기 위한 함수. */
 function checkUser(req, res, next) { 
     if (req.user) next();
@@ -131,7 +126,44 @@ app.post('/api/board/post', checkUser, function(req, res1) {
     });
 });
 
+/** 게시물 전부 불러오기 GET 요청 */
+app.get('/api/board/list', checkUser, function(req, res1) {
+    db.collection('board').find().toArray(function(err, res) {
+        res1.status(200).json({ board : res });
+    });
+});
 
+/** 특정 게시물 번호로 불러오기 GET 요청
+ *  /api/board/detail/번호
+ */
+app.get('/api/board/detail/:id', checkUser, function(req, res1) {
+    db.collection('board').findOne({_id : parseInt(req.params.id)}, function(err, res) {
+        if (res==null) res1.status(400).json({ message : "Cannot find the board" });
+        else res1.status(200).json({ board : res });
+    });
+});
+
+/** 게시물 번호로 수정하기 PUT 요청
+ *  { "_id": 1, "title": "title1", "content": "content1" }
+ */
+app.put('/api/board/edit', checkUser, function(req, res1) {
+    var dateString = WhatTimeNow();
+    db.collection('board').updateOne({ _id : parseInt(req.body._id) }, { $set : { title : req.body.title, content : req.body.content, date : dateString }}, function(err, res) {
+        res1.status(200).json({ message : "Edit Success" });
+    });
+});
+
+/** 게시물 번호로 삭제하기 PUT 요청
+ *  { "_id": 0 }
+ */
+app.put('/api/board/delete', function(req, res1) {
+    req.body._id = parseInt(req.body._id);
+    var data = { _id : req.body._id, writer : req.user._id };
+    db.collection('board').deleteOne(data, function(err, res) {
+        if (err) res1.status(400).send({ message : 'Delete Failed.'});
+        else res1.status(200).send({ message : 'Delete Success!' });
+    });
+});
 
 /** 현재 시간 구하기 위한 함수. */
 function WhatTimeNow() { 
@@ -161,3 +193,10 @@ function WhatTimeNow() {
 
     return dateString;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// 사용자 정보에 접근하는 예제 페이지 (인증이 필요한 페이지)
+app.get('/api/mypage/dashboard', checkUser, (req, res) => {
+    res.status(200).json({ userID : req.user });
+});
