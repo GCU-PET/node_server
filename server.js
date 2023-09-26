@@ -15,6 +15,7 @@ app.use(session({secret : '비밀코드', resave : true, saveUninitialized: fals
 app.use(passport.initialize());
 app.use(passport.session()); 
 
+//DB연결 설정
 var db;
 MongoClient.connect(process.env.DB_URL, function(err, client){
     if (err) return console.log(err);
