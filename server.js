@@ -201,3 +201,29 @@ function WhatTimeNow() {
 app.get('/api/mypage/dashboard', checkUser, (req, res) => {
     res.status(200).json({ userID : req.user });
 });
+
+
+
+
+//ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡteachable testㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+const express = require('express');
+const app = express();
+const teachable = require('./teachable'); // Assuming teachable.js is in the same directory
+
+app.get('/api/teachable/getImage', (req, res) => {
+  const imageUrl = "https://img.freepik.com/premium-photo/puppy-sitting-on-the-grass-american-bully-puppy-dog-pet-funny-and-cute_10541-4290.jpg?w=996";
+
+  // Call the classifyImage function from teachable.js
+  teachable.classifyImage(imageUrl)
+    .then((predictions) => {
+      res.json({ predictions });
+    })
+    .catch((e) => {
+      res.status(500).json({ error: e.message });
+    });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
