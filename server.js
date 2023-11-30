@@ -206,24 +206,30 @@ app.get('/api/mypage/dashboard', checkUser, (req, res) => {
 
 
 //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡteachable testㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-const express = require('express');
-const app = express();
-const teachable = require('./teachable'); // Assuming teachable.js is in the same directory
+const TeachableMachine = require("@sashido/teachablemachine-node");
 
-app.get('/api/teachable/getImage', (req, res) => {
-  const imageUrl = "https://img.freepik.com/premium-photo/puppy-sitting-on-the-grass-american-bully-puppy-dog-pet-funny-and-cute_10541-4290.jpg?w=996";
-
-  // Call the classifyImage function from teachable.js
-  teachable.classifyImage(imageUrl)
-    .then((predictions) => {
-      res.json({ predictions });
-    })
-    .catch((e) => {
-      res.status(500).json({ error: e.message });
+//teachable.js에 있는 teachable 기능 함수화 했음.
+async function classifyImage(imageUrl) {
+  try {
+    const model = new TeachableMachine({
+      modelUrl: "https://teachablemachine.withgoogle.com/models/IYYVU1LrW/" //dog model
     });
-});
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+    const predictions = await model.classify({ imageUrl });
+    return predictions;
+  } catch (error) {
+    console.error("ERROR", error);
+    throw error;
+  }
+}
+
+// 함수화 된 teachable 에다가 이미지 링크 넣어서 분류 하는 기능. imageUrl은 추후 이미지 관리 방식에 따라 방식 바꿔야 될수도?
+const imageUrl = "https://img.freepik.com/premium-photo/puppy-sitting-on-the-grass-american-bully-puppy-dog-pet-funny-and-cute_10541-4290.jpg?w=996";
+classifyImage(imageUrl)
+  .then((predictions) => {
+    console.log("Predictions:", predictions);
+  })
+  .catch((error) => {
+    console.log("Something went wrong:", error);
+  });
+

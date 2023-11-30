@@ -6,12 +6,13 @@
 //npm install node-fetch@^2 -> node.js환경에서 Fetch API를 사용할 수 있도록 만들어줌.
 //npm i --save-dev @types/node-fetch
 
+//ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
 // //teachable.js파일만 돌렸을때, 성공된 코드. 실행명령어: node teachable.js
-// //안쓰는 코드임. 기본이 되는 코드.
+// //안쓰는 코드임. 기본이 되는 코드. 혹시 몰라서 따로 남겨놓는 코드임.
 const TeachableMachine = require("@sashido/teachablemachine-node");
 
 const model = new TeachableMachine({
-  modelUrl: "https://teachablemachine.withgoogle.com/models/IYYVU1LrW/"
+  modelUrl: "https://teachablemachine.withgoogle.com/models/IYYVU1LrW/" //dog model
 });
 
 model.classify({
@@ -21,24 +22,4 @@ model.classify({
 }).catch((e) => {
   console.log("ERROR", e);
 });
-
-// // teachable.js
-// const TeachableMachine = require("@sashido/teachablemachine-node");
-
-// const model = new TeachableMachine({
-//   modelUrl: "https://teachablemachine.withgoogle.com/models/IYYVU1LrW/" //dog model
-// });
-
-// function classifyImage(imageUrl) {
-//   return model.classify({
-//     imageUrl: imageUrl
-//   });
-// }
-
-// module.exports = {
-//   classifyImage
-// };
-
-
-
 
