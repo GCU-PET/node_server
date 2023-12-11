@@ -3,9 +3,17 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 const MongoClient = require('mongodb').MongoClient;
+const cors = require('cors');
+const TokenUtils = require('./utils/tokenUtils');
 
 // body-parser 미들웨어 설정
 app.use(bodyParser.json());
+app.use(cors({
+    origin: [
+        "*"
+    ], // 모든 출처 허용 옵션. true 를 써도 된다.
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+}));
 
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
@@ -16,16 +24,22 @@ app.use(passport.initialize());
 app.use(passport.session()); 
 
 var db;
-MongoClient.connect(process.env.DB_URL, function(err, client){
+MongoClient.connect(process.env.DB_URL, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
     if (err) return console.log(err);
     
     db = client.db('PETapp');
     
-    app.listen(process.env.PORT, function() {
+    app.listen(process.env.PORT, function () {
         console.log('listening on 8080');
     });
     
 });
+
+
+app.get('/', (req, res) => {
+    res.send('<h1>Hello World!</h1>');
+});
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -33,13 +47,24 @@ MongoClient.connect(process.env.DB_URL, function(err, client){
  *  로그인 시 전송할 json data 형식
  *  { "ID": "test", "PW": "test" }
   */
-app.post('/api/user/login', passport.authenticate('local', {failureRedirect : '/api/user/fail'}), function(req, res){
-    res.json({ result : 'success'});
+app.post('/api/user/login', passport.authenticate('local', { failureRedirect: '/api/user/fail' }), function (req, res) {
+    console.log(req.body);
+    const accessToken = TokenUtils.makeToken({ id: String(req.body.ID) });
+    res.json({ token: accessToken, result: true }); // result: true
 });
 
 /** 로그인 실패했을 시 반환할 메시지 */
 app.all('/api/user/fail', function(req, res) {
-    res.status(401).json({ message: 'Login Fail' });
+    res.status(401).json({ result: false, message: 'Login Fail' });
+});
+
+app.post('/api/user/isExisted', function (req, res1) {
+    db.collection('login').findOne({ ID: req.body.ID }, (err, res) => {
+        console.log(req.body);
+        console.log(res);
+        if (res) return res1.status(200).json({ result: false, message: "Existed ID" });
+        return res1.status(200).json({ result: true, message: "availabe" });
+    });
 });
 
 /** 회원가입 요청을 위한 POST 요청
@@ -49,10 +74,11 @@ app.post('/api/user/signup', function(req, res1) {
     db.collection('login').findOne({ ID : req.body.ID }, function(err, res) {
         if(!(res)) {
             db.collection('login').insertOne( { ID : req.body.ID, PW : req.body.PW }, function(err, res) {
-                res1.status(200).send({ message : 'Sign Up Success!' });
+                const accessToken = TokenUtils.makeToken({ id: String(req.body.ID) });
+                res1.status(200).json({ token: accessToken, result: true, message: 'Sign Up Success!' });
             });
         } else {
-            res1.status(400).send({ message : 'Duplicated ID'});
+            res1.status(500).json({ result: false, message: 'Duplicated ID' });
         }
     });
 });
@@ -60,8 +86,19 @@ app.post('/api/user/signup', function(req, res1) {
 /** 비밀번호 변경을 위한 PUT 요청 */
 app.put('/api/user/pwchange', function(req, res1) {
     db.collection('login').updateOne({ ID : req.body.ID }, { $set : { PW : req.body.PW } }, function(err, res) {
-        if(err) res1.status(400).send({ message : 'Password change failed' });
-        res1.status(200).send({ message : 'Password change Success!' });
+        if(err) res1.status(400).json({ message : 'Password change failed' });
+        res1.status(200).json({ message : 'Password change Success!' });
+    });
+});
+
+/** 유저정보 변경을 위한 PUT 요청 */
+app.post('/api/user/update', checkUser, function(req, res1) {
+    let loginStatus = TokenUtils.verify(req.headers.token);
+    db.collection('login').findOne({ ID : loginStatus.id }, function(err, res) {
+        if (err) res1.status(400).json({ result: false, message: 'error' });
+        db.collection('login').updateOne({ ID: loginStatus.id }, { $set: { PW: req.body.PW, userName: req.body.userName, petName: req.body.petName, petAge: req.body.petAge } });
+
+        res1.status(200).json({ message : 'Password change Success!' });
     });
 });
 
@@ -99,8 +136,14 @@ passport.deserializeUser(function (getID, done) {
 
 /** 로그인 상태를 확인하기 위한 함수. */
 function checkUser(req, res, next) { 
-    if (req.user) next();
-    else res.status(401).json({ message: 'No login information.' });
+    let loginStatus = TokenUtils.verify(req.headers.token);
+    if(loginStatus.ok) {
+        next();
+    } else {
+        res.status(500).json({ ok: false, message: loginStatus.message });
+    }
+    // if (req.user) next();
+    // else res.status(401).json({ message: 'No login information.' });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,27 +152,34 @@ function checkUser(req, res, next) {
  *  { "title": "title1", "content": "content1" }
  *  저장방식 { _id : 게시물번호, writer : user._id, title : title, content : content, date : YYYYMMDD HH:MM:SS:MM }
  */
-app.post('/api/board/post', checkUser, function(req, res1) {
+app.post('/api/board/post', checkUser, function (req, res1) {
+    let loginStatus = TokenUtils.verify(req.headers.token);
     db.collection('counter').findOne({name : 'board_count'}, function(err, res) {
         var cnt = res.count;
         var dateString = WhatTimeNow();
-
-        if(req.user) var data = { _id : cnt, writer : req.user._id, title : req.body.title, content : req.body.content, date : dateString };
-        else res1.status(400).json({ result : "Login first" });
+        var data;
+        if(loginStatus.id) data = { _id : cnt, writer : loginStatus.id, title : req.body.title, content : req.body.content, date : dateString };
+        else res1.status(400).json({ result: false, message: "Login first" });
 
         db.collection('board').insertOne(data, function() {
             db.collection('counter').updateOne({name : 'board_count'}, { $inc : {count : 1}}, function(err, res) {
-                res1.status(200).json({ result : "Post Success!" });
+                res1.status(200).json({ result: true, message: "Post Success!" });
             });
 
         });
     });
 });
 
+// app.post('/api/board/test', checkUser, function (req, res1) {
+//     console.log(req.body);
+//     return res1.status(200).json({ result : 'success', board : req.body });
+// });
+
 /** 게시물 전부 불러오기 GET 요청 */
 app.get('/api/board/list', checkUser, function(req, res1) {
-    db.collection('board').find().toArray(function(err, res) {
-        res1.status(200).json({ board : res });
+    db.collection('board').find().toArray(function (err, res) {
+        console.log(res);
+        res1.status(200).json({ result : 'success', board : res });
     });
 });
 
@@ -160,8 +210,8 @@ app.put('/api/board/delete', function(req, res1) {
     req.body._id = parseInt(req.body._id);
     var data = { _id : req.body._id, writer : req.user._id };
     db.collection('board').deleteOne(data, function(err, res) {
-        if (err) res1.status(400).send({ message : 'Delete Failed.'});
-        else res1.status(200).send({ message : 'Delete Success!' });
+        if (err) res1.status(400).json({ message : 'Delete Failed.'});
+        else res1.status(200).json({ message : 'Delete Success!' });
     });
 });
 
