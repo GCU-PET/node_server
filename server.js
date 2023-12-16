@@ -23,6 +23,7 @@ app.use(session({secret : '비밀코드', resave : true, saveUninitialized: fals
 app.use(passport.initialize());
 app.use(passport.session()); 
 
+//DB연결 설정
 var db;
 MongoClient.connect(process.env.DB_URL, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, client) {
     if (err) return console.log(err);
@@ -250,3 +251,35 @@ function WhatTimeNow() {
 app.get('/api/mypage/dashboard', checkUser, (req, res) => {
     res.status(200).json({ userID : req.user });
 });
+
+
+
+
+//ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡteachable testㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+// const TeachableMachine = require("@sashido/teachablemachine-node");
+
+// //teachable.js에 있는 teachable 기능 함수화 했음.
+// async function classifyImage(imageUrl) {
+//   try {
+//     const model = new TeachableMachine({
+//       modelUrl: "https://teachablemachine.withgoogle.com/models/IYYVU1LrW/" //dog model
+//     });
+
+//     const predictions = await model.classify({ imageUrl });
+//     return predictions;
+//   } catch (error) {
+//     console.error("ERROR", error);
+//     throw error;
+//   }
+// }
+
+// // 함수화 된 teachable 에다가 이미지 링크 넣어서 분류 하는 기능. imageUrl은 추후 이미지 관리 방식에 따라 방식 바꿔야 될수도?
+// const imageUrl = "https://img.freepik.com/premium-photo/puppy-sitting-on-the-grass-american-bully-puppy-dog-pet-funny-and-cute_10541-4290.jpg?w=996";
+// classifyImage(imageUrl)
+//   .then((predictions) => {
+//     console.log("Predictions:", predictions);
+//   })
+//   .catch((error) => {
+//     console.log("Something went wrong:", error);
+//   });
+
