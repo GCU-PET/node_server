@@ -32,6 +32,8 @@
     "passport-local": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node-fetch": "^2.6.6"
+    "@types/node-fetch": "^2.6.6",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
   }
 }
