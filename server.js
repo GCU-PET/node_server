@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const MongoClient = require('mongodb').MongoClient;
 const cors = require('cors');
 const TokenUtils = require('./utils/tokenUtils');
+app.TokenUtils = TokenUtils;
 require('dotenv').config();
 
 // body-parser 미들웨어 설정

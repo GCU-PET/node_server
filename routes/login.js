@@ -14,10 +14,18 @@ router.use(passport.session());
  *  로그인 시 전송할 json data 형식
  *  { "ID": "test", "PW": "test" }
   */
-router.post('/login', passport.authenticate('local', { failureRedirect: '/api/user/fail' }), function (req, res) {
-    console.log(req.body);
-    const accessToken = TokenUtils.makeToken({ id: String(req.body.ID) });
-    res.json({ token: accessToken, result: true }); // result: true
+router.post('/login', async function (req, res) {
+    var result = await req.app.db.collection('login').findOne({ ID: req.body.ID, PW: req.body.PW });
+    console.log('result:', result);
+
+    if (result) {
+        console.log('req.body2:', req.body);
+        const accessToken = req.app.TokenUtils.makeToken({ id: String(req.body.ID) });
+        res.json({ token: accessToken, result: true }); // result: true
+    } else {
+        console.log('실패');
+        res.status(500).json({ result: false, message: 'Login fail' });
+    }
 });
 
 /** 로그인 실패했을 시 반환할 메시지 */
@@ -26,7 +34,7 @@ router.all('/fail', function(req, res) {
 });
 
 router.post('/isExisted', function (req, res1) {
-    db.collection('login').findOne({ ID: req.body.ID }, (err, res) => {
+    req.app.db.collection('login').findOne({ ID: req.body.ID }, (err, res) => {
         console.log(req.body);
         console.log(res);
         if (res) return res1.status(200).json({ result: false, message: "Existed ID" });
@@ -38,10 +46,10 @@ router.post('/isExisted', function (req, res1) {
  *  { "ID": "test2", "PW": "test2" }
  */
 router.post('/signup', function(req, res1) {
-    db.collection('login').findOne({ ID : req.body.ID }, function(err, res) {
+    req.app.db.collection('login').findOne({ ID : req.body.ID }, function(err, res) {
         if(!(res)) {
-            db.collection('login').insertOne( { ID : req.body.ID, PW : req.body.PW }, function(err, res) {
-                const accessToken = TokenUtils.makeToken({ id: String(req.body.ID) });
+            req.app.db.collection('login').insertOne( { ID : req.body.ID, PW : req.body.PW }, function(err, res) {
+                const accessToken = req.app.TokenUtils.makeToken({ id: String(req.body.ID) });
                 res1.status(200).json({ token: accessToken, result: true, message: 'Sign Up Success!' });
             });
         } else {
@@ -52,7 +60,7 @@ router.post('/signup', function(req, res1) {
 
 /** 비밀번호 변경을 위한 PUT 요청 */
 router.put('/pwchange', function(req, res1) {
-    db.collection('login').updateOne({ ID : req.body.ID }, { $set : { PW : req.body.PW } }, function(err, res) {
+    req.app.db.collection('login').updateOne({ ID : req.body.ID }, { $set : { PW : req.body.PW } }, function(err, res) {
         if(err) res1.status(400).json({ message : 'Password change failed' });
         res1.status(200).json({ message : 'Password change Success!' });
     });
@@ -61,9 +69,9 @@ router.put('/pwchange', function(req, res1) {
 /** 유저정보 변경을 위한 PUT 요청 */
 router.post('/update', checkUser, function(req, res1) {
     let loginStatus = TokenUtils.verify(req.headers.token);
-    db.collection('login').findOne({ ID : loginStatus.id }, function(err, res) {
+    req.app.db.collection('login').findOne({ ID : loginStatus.id }, function(err, res) {
         if (err) res1.status(400).json({ result: false, message: 'error' });
-        db.collection('login').updateOne({ ID: loginStatus.id }, { $set: { PW: req.body.PW, userName: req.body.userName, petName: req.body.petName, petAge: req.body.petAge } });
+        req.app.db.collection('login').updateOne({ ID: loginStatus.id }, { $set: { PW: req.body.PW, userName: req.body.userName, petName: req.body.petName, petAge: req.body.petAge } });
 
         res1.status(200).json({ message : 'Password change Success!' });
     });
@@ -108,7 +116,7 @@ passport.serializeUser(function (user, done) {
 
 /** 세션에 저장한 아이디를 통해서 사용자 정보 객체를 불러옴 */
 passport.deserializeUser(function (getID, done) {
-    db.collection('login').findOne({ ID : getID }, function(err, res) {
+    req.app.db.collection('login').findOne({ ID : getID }, function(err, res) {
         done(null, res);
     });
 });
