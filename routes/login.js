@@ -160,16 +160,19 @@ router.post("/signup", function (req, res1) {
       if (!res) {
         req.app.db
           .collection("login")
-          .insertOne({ ID: req.body.ID, PW: req.body.PW }, function (err, res) {
-            const accessToken = req.app.TokenUtils.makeToken({
-              id: String(req.body.ID),
-            });
-            return res1.status(201).json({
-              token: accessToken,
-              result: true,
-              message: "Sign Up Success!",
-            });
-          });
+          .insertOne(
+            { ID: req.body.ID, PW: req.body.PW, petName: req.body.petName },
+            function (err, res) {
+              const accessToken = req.app.TokenUtils.makeToken({
+                id: String(req.body.ID),
+              });
+              return res1.status(201).json({
+                token: accessToken,
+                result: true,
+                message: "Sign Up Success!",
+              });
+            }
+          );
       } else {
         return res1
           .status(501)
