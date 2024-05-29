@@ -9,12 +9,13 @@ require("dotenv").config();
 
 // body-parser 미들웨어 설정
 app.use(bodyParser.json());
-app.use(
-  cors({
-    origin: ["*"], // 모든 출처 허용 옵션. true 를 써도 된다.
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  })
-);
+// app.use(
+//   cors({
+//     origin: ["*"], // 모든 출처 허용 옵션. true 를 써도 된다.
+//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   })
+// );
+app.use(cors());
 
 var db;
 MongoClient.connect(
@@ -38,7 +39,7 @@ const routes_post = require("./routes/post.js");
 app.use("/api/board", checkUser, routes_post);
 
 const routes_mypage = require("./routes/mypage.js");
-app.use("/api/mypage", checkUser, routes_mypage);
+app.use("/api/mypage", routes_mypage);
 
 /** 로그인 상태를 확인하기 위한 함수. */
 function checkUser(req, res, next) {

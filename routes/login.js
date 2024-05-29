@@ -237,7 +237,7 @@ router.put("/pwchange", function (req, res1) {
  * /api/user/update:
  *   post:
  *     summary: "유저정보 변경을 위한 post 요청."
- *     description: "post 방식으로 PW, userName, petName, petAge 전송"
+ *     description: "post 방식으로 PW, userName, petName 전송"
  *     parameters:
  *       - in: body
  *         name: headers
@@ -261,8 +261,6 @@ router.put("/pwchange", function (req, res1) {
  *                 type: string
  *               petName:
  *                 type: string
- *               petAge:
- *                 type: integer
  *     responses:
  *       201:
  *         description: Password change Success
@@ -293,7 +291,6 @@ router.post("/update", checkUser, function (req, res1) {
             PW: req.body.PW,
             userName: req.body.userName,
             petName: req.body.petName,
-            petAge: req.body.petAge,
           },
         }
       );
