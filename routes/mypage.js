@@ -3,8 +3,68 @@ const router = express.Router();
 require("dotenv").config();
 
 // 사용자 정보에 접근하는 예제 페이지 (인증이 필요한 페이지)
-router.get("/dashboard", (req, res) => {
-  res.status(200).json({ userID: req.user });
+
+// log list
+// 헤더에 토큰, parameter 추가해서 날짜로 로그 조회하기
+/**
+ * @swagger
+ * /api/mypage/dashboard:
+ *   get:
+ *     summary: "헤더에 토큰 추가해서 사용자 정보에 접근하는 get 요청."
+ *     description: "get 방식으로 요청."
+ *     parameters:
+ *       - in: body
+ *         name: headers
+ *         required: true
+ *         schema:
+ *           properties:
+ *             token:
+ *               type: string
+ *     tags:
+ *       - DashBoard
+ *     responses:
+ *       201:
+ *         description: Post Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: boolean
+ *                 response:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       ID:
+ *                         type: string
+ *                       PW:
+ *                         type: string
+ *                       userName:
+ *                         type: string
+ *                       petName:
+ *                         type: string
+ *       400:
+ *         description: Bad request, request body invalid
+ *       500:
+ *         description: Internal server error
+ *       501:
+ *         description: Login first
+ */
+router.get("/dashboard", async (req, res) => {
+  let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+  try {
+    console.log(req.params.id);
+    var result = await req.app.db
+      .collection("login")
+      .findOne({ ID: loginStatus.id });
+    return res.status(200).json({ result: true, response: result });
+  } catch {
+    return res.status(501).json({ result: false });
+  }
 });
 
 // log list
@@ -25,19 +85,6 @@ router.get("/dashboard", (req, res) => {
  *               type: string
  *     tags:
  *       - DashBoard
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               ID:
- *                 type: string
- *               content:
- *                 type: string
- *               profile:
- *                 type: image
  *     responses:
  *       201:
  *         description: Post Success
