@@ -25,7 +25,9 @@ MongoClient.connect(
     if (err) return console.log(err);
     db = client.db("PETapp");
     app.db = db;
-    app.listen(process.env.PORT, () => console.log("listening on 8080"));
+    app.listen(process.env.PORT, () =>
+      console.log("listening on", process.env.PORT)
+    );
   }
 );
 
@@ -39,7 +41,7 @@ const routes_post = require("./routes/post.js");
 app.use("/api/board", checkUser, routes_post);
 
 const routes_mypage = require("./routes/mypage.js");
-app.use("/api/mypage", routes_mypage);
+app.use("/api/mypage", checkUser, routes_mypage);
 
 /** 로그인 상태를 확인하기 위한 함수. */
 function checkUser(req, res, next) {

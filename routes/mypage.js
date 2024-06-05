@@ -8,15 +8,76 @@ router.get("/dashboard", (req, res) => {
 });
 
 // log list
-router.get("/log-list", async (req, res1) => {
+// 헤더에 토큰, parameter 추가해서 날짜로 로그 조회하기
+/**
+ * @swagger
+ * /api/mypage/log-list/:id:
+ *   get:
+ *     summary: "헤더에 토큰, URI parameter 추가해서 날짜로 로그 get 요청."
+ *     description: "get 방식으로 요청."
+ *     parameters:
+ *       - in: body
+ *         name: headers
+ *         required: true
+ *         schema:
+ *           properties:
+ *             token:
+ *               type: string
+ *     tags:
+ *       - DashBoard
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ID:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               profile:
+ *                 type: image
+ *     responses:
+ *       201:
+ *         description: Post Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: boolean
+ *                 response:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: integer
+ *                       writer:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       date:
+ *                         type: string
+ *       400:
+ *         description: Bad request, request body invalid
+ *       500:
+ *         description: Internal server error
+ *       501:
+ *         description: Login first
+ */
+router.get("/log-list/:id", async (req, res1) => {
   let loginStatus = req.app.TokenUtils.verify(req.headers.token);
   try {
+    console.log(req.params.id);
     var result = await req.app.db
       .collection("login")
-      .findOne({ ID: req.body.ID, PW: req.body.PW });
+      .findOne({ ID: loginStatus.id });
     await req.app.db
       .collection("log")
-      .find({ writer: result.userName })
+      .find({ writer: result.userName, date: { $regex: "^" + req.params.id } })
       .toArray(function (err, res) {
         console.log(res);
         return res1.status(200).json({ result: true, response: res });

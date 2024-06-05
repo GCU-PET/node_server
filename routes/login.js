@@ -134,6 +134,10 @@ router.post("/isExisted", function (req, res1) {
  *                 type: string
  *               PW:
  *                 type: string
+ *               userName:
+ *                 type: string
+ *               petName:
+ *                 type: string
  *     responses:
  *       201:
  *         description: 회원가입 성공
@@ -158,21 +162,24 @@ router.post("/signup", function (req, res1) {
     .collection("login")
     .findOne({ ID: req.body.ID }, function (err, res) {
       if (!res) {
-        req.app.db
-          .collection("login")
-          .insertOne(
-            { ID: req.body.ID, PW: req.body.PW, petName: req.body.petName },
-            function (err, res) {
-              const accessToken = req.app.TokenUtils.makeToken({
-                id: String(req.body.ID),
-              });
-              return res1.status(201).json({
-                token: accessToken,
-                result: true,
-                message: "Sign Up Success!",
-              });
-            }
-          );
+        req.app.db.collection("login").insertOne(
+          {
+            ID: req.body.ID,
+            PW: req.body.PW,
+            userName: req.body.userName,
+            petName: req.body.petName,
+          },
+          function (err, res) {
+            const accessToken = req.app.TokenUtils.makeToken({
+              id: String(req.body.ID),
+            });
+            return res1.status(201).json({
+              token: accessToken,
+              result: true,
+              message: "Sign Up Success!",
+            });
+          }
+        );
       } else {
         return res1
           .status(501)
